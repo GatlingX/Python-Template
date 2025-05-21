@@ -5,9 +5,9 @@ dot_global_config_health_check: true
 # LLMs
 ########################################################
 default_llm:
-  default_model: gemini/gemini-2.0-flash
-  default_temperature: 0.5
-  default_max_tokens: 100000
+  default_model: openai/gpt-4.1
+  default_temperature: 0.3
+  default_max_tokens: 32000
 
 llm_config:
   cache_enabled: false

@@ -4,6 +4,14 @@ import asyncio
 import os
 import subprocess
 from pathlib import Path
+import sys
+
+if len(sys.argv) < 2:
+    print("Error: Please provide a repository path as the first argument. Example: python demo.py /home/*username*/git/*forge-project-name*/")
+    sys.exit(1)
+    
+repo_dir = Path(sys.argv[1])
+
 approved_commands = [
     'forge',
     'npm',
@@ -14,8 +22,6 @@ approved_commands = [
     'git submodule',
     'nvm'
 ]
-
-repo_dir = Path('/home/imanolov/git/Python-Template/resources/v2-core-public-cantina')
 
 
 def list_files_tool(relative_path: str | None = None) -> list[str] | str:

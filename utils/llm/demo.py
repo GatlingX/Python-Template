@@ -73,35 +73,35 @@ def read_file_tool(relative_path: str) -> str:
         print("File read successfully: " + relative_path)
         return file.read()
     
-def execute_command_tool(command: str, relative_path: str = '.') -> tuple[str, int]:
-    """Execute the given command inside of the given relative path and return the output, "done" if the command was successful and the return code."""
+def execute_command_tool(command: str, relative_path: str = '.', accept_nonzero_return_code: bool = False) -> tuple[str, int]:
+    """Execute the given command inside of the given relative path and whether a non-zero return code is acceptable. Returns the output with "done" appended if the command was successful and the return code."""
 
+    print(f"Attempting to execute command: {command} in {relative_path}")
     if not any(command.startswith(cmd) for cmd in approved_commands):
         print("Command must start with one of the following: " + ', '.join(approved_commands) + "!")
         return 'Error: Command must start with one of the following: ' + ', '.join(approved_commands), 1
     
     if '..' in relative_path:
         print("LLM tried to access parent directory!")
-        return 'Restricted: Tried to access parent directory!'
+        return 'Restricted: Tried to access parent directory!', 1
     
     absolute_path = repo_dir / relative_path
 
     if not os.path.exists(absolute_path):
         print(f"Directory {relative_path} does not exist!")
-        return 'Error: Directory {relative_path} does not exist!'
+        return 'Error: Directory {relative_path} does not exist!', 1
 
     try:
-        print(f"Executing command: {command} in {relative_path}")
         result = subprocess.run(command, shell=True, cwd=absolute_path, capture_output=True, text=True)
         print("Command executed: " + command)
-        if result.returncode != 0:
-            return 'Error: ' + result.stderr, result.returncode
-        return result.stdout + '\ndone', result.returncode
+        if not accept_nonzero_return_code and result.returncode != 0:
+            return 'Error: ' + result.stderr + '\nOutput: ' + result.stdout, result.returncode
+        return 'Output: ' + result.stdout + '\ndone', result.returncode
     except subprocess.CalledProcessError as e:
         return 'Error: ' + str(e), 1
     
 def prompt_modify_file_tool(relative_path: str, new_content: str, oneline_modification_reason: str) -> str:
-    """Modify the given file using the given prompt."""
+    """Overwrite an existing file with the given new content. The file will be modified in place."""
 
     if '..' in relative_path:
         print("LLM tried to access parent directory! Returning empty string.")
@@ -111,7 +111,7 @@ def prompt_modify_file_tool(relative_path: str, new_content: str, oneline_modifi
     
     if not os.path.exists(absolute_path):
         print(f"File {relative_path} does not exist! Returning empty string.")
-        return 'Error: File {relative_path} does not exist!'
+        return f'Error: File {relative_path} does not exist!'
     
     print(f"LLM wants to modify file {relative_path}")
     print(f"Reason: {oneline_modification_reason}")
@@ -137,9 +137,9 @@ def final_check_before_completion() -> str:
     
     print('Forge build passed! Trying to run tests...')
 
-    result2, returncode2 = execute_command_tool('forge test')
+    result2, returncode2 = execute_command_tool('forge test', accept_nonzero_return_code=True)
 
-    if returncode2 != 0:
+    if result2.startswith('Error:') or result2.startswith('Failure:') or result2.startswith('Restricted:'):
         return 'Failure: Forge test failed! Please continue getting the repo tests to run. Here is your output: ' + result2
     
     print('Forge test passed! Should exit now...')
@@ -156,11 +156,12 @@ class RunCommands(dspy.Signature):
 
 
 subprocess.run(['git', 'reset', '--hard'], cwd=repo_dir)
-subprocess.run(['git', 'clean', '-fd'], cwd=repo_dir)
+subprocess.run(['git', 'clean', '-fdx'], cwd=repo_dir)
 
 inf_module = DSPYInference(
-    pred_signature=RunCommands,
+    pred_signature=RunCommands(),
     tools=[list_files_tool, list_folders_tool, read_file_tool, execute_command_tool, prompt_modify_file_tool, final_check_before_completion],
+    max_iters=20,
 )
 
 result = asyncio.run(inf_module.run(
@@ -179,6 +180,7 @@ result = asyncio.run(inf_module.run(
         You can additionally modify any file in the project that you have already read.
         Your goal is to run `forge build` successfully and to run `forge test` (which must complete but may have failing tests).
         You will not give up until these commands run successfully.
+        You will never run any commands that open ports or a shell.
         You only have one shot at this so make sure to do it right.
         You should start by finding and opening the readme. Then, you should see what other files and folders are in the project.
         Your response will always finish with a call to `final_check_before_completion` that returns a success.

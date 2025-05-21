@@ -100,7 +100,7 @@ class Config:
 
         return {k: unwrap(v) for k, v in self.__dict__.items()}
 
-    def llm_api_key(self, model_name: str = None) -> str:
+    def llm_api_key(self, model_name: str | None = None) -> str:
         """Returns the appropriate API key based on the model name."""
 
         model_identifier = model_name or self.model_name
@@ -122,7 +122,7 @@ class Config:
         else:
             raise ValueError(f"No API key configured for model: {model_identifier}")
 
-    def api_base(self, model_name: str) -> str:
+    def api_base(self, model_name: str) -> str | None:
         """Returns the Helicone link for the model."""
         if "gpt" in model_name.lower() or re.match(
             OPENAI_O_SERIES_PATTERN, model_name.lower()

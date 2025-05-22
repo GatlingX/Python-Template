@@ -107,7 +107,7 @@ def execute_command_tool(command: str, relative_path: str = '.', accept_nonzero_
         return 'Error: ' + str(e), 1
     
 def prompt_modify_file_tool(relative_path: str, new_content: str, oneline_modification_reason: str) -> str:
-    """Overwrite an existing file with the given new content. The file will be modified in place. Use this tool as a last resort."""
+    """Overwrite an existing file with the given new content. The file will be modified in place. In the vast majority of cases you should not use this tool and should instead consult the --help of the commands available to you."""
 
     if '..' in relative_path:
         print("LLM tried to access parent directory! Returning empty string.")
@@ -158,7 +158,7 @@ class RunCommands(dspy.Signature):
     high_level_instructions: str = dspy.InputField()
     forge_build_runs: bool = dspy.OutputField()
     forge_test_runs: bool = dspy.OutputField()
-    ran_commands: list[str] = dspy.OutputField()
+    shell_command_ran: list[str] = dspy.OutputField()
 
 
 subprocess.run(['git', 'reset', '--hard'], cwd=repo_dir)
@@ -179,21 +179,23 @@ result = asyncio.run(inf_module.run(
         You can additionally only run the following commands at the root of the project:
         {', '.join(approved_commands)}
         You will not combine commands with && or ||.
-        You will always try to use the non-interactive or json versions of the commands.
+        You will always try to use the non-interactive or json versions of the commands. This is because the output is passed back to you in the same format.
         Sometimes repos fail to give instructions on how to set up dependencies. In this case you should figure out how to pull them from one of the supplied commands.
         For example, if you find out that forge-std doesn't exist, you can pull it in via `forge install foundry-rs/forge-std`.
-        Please be mindful of required versions and stick to them. Modify `remappings.txt` only as a last resort.
-        You are allowed to use the help parameter of the commands if you get confused or are uncertain about their usage.
+        Please be mindful of required versions and stick to them.
+        You should run a command with `--help` if you are unsure about its capabilities and don't have any ideas of how to proceed.
         When supplying any relative path to a tool you will never use `..`. This is forbidden and will cause the tool to fail.
         You are not allowed to move freely using `cd`.
         You can additionally modify any file in the project that you have already read.
-        Your goal is to run `forge build` successfully and to run `forge test` (which must complete but may have failing tests).
+        Your goal is to run `forge build` successfully and to run `forge test` (which must complete but may have failing tests so it may not necessarily "succeed").
+        Keep in mind that the `forge soldeer` subcommand exists and is the dependency manager for some projects. You should expect to see a `soldeer.lock` in these cases.
         You will not give up until these commands run successfully.
         You will never run any commands that open ports or a shell.
         You only have one shot at this so make sure to do it right.
         You should start by finding and opening the readme. Then, you should see what other files and folders are in the project.
         Your response will always finish with a call to `final_check_before_completion` that returns a success.
+        You will not execute any further commands after you have verified that `forge build` and `forge test` work.
     """
 ))
 
-print(result.ran_commands)
+print(result.shell_command_ran)

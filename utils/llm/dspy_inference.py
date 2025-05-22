@@ -17,7 +17,7 @@ from langfuse.decorators import observe
 class DSPYInference:
     def __init__(
         self,
-        pred_signature: dspy.Signature,
+        pred_signature: type[dspy.Signature],
         tools: list[Callable] = [],
         observe: bool = True,
         model_name: str = global_config.default_llm.default_model,

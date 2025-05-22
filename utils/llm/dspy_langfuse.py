@@ -14,7 +14,7 @@ NOTE: We use contextvars to store the current state of the callback, so it is th
 
 # 1. Define a custom callback class that extends BaseCallback class
 class LangFuseDSPYCallback(BaseCallback):
-    def __init__(self, signature: dspy.Signature):
+    def __init__(self, signature: type[dspy.Signature]):
         super().__init__()
         # Use contextvars for per-call state
         self.current_system_prompt = contextvars.ContextVar("current_system_prompt")

@@ -38,7 +38,7 @@ def list_files_tool(relative_path: str | None = None) -> list[str] | str:
 
     if not os.path.exists(absolute_path):
         print(f"Directory {relative_path} does not exist! Returning empty list.")
-        return 'Error: Directory {relative_path} does not exist!'
+        return f'Error: Directory {relative_path} does not exist!'
 
     print("Listing files in: " + relative_path)
     return [f for f in os.listdir(absolute_path) if os.path.isfile(os.path.join(absolute_path, f))]
@@ -57,7 +57,7 @@ def list_folders_tool(relative_path: str | None = None) -> list[str] | str:
 
     if not os.path.exists(absolute_path):
         print(f"Directory {relative_path} does not exist! Returning empty list.")
-        return 'Error: Directory {relative_path} does not exist!'
+        return f'Error: Directory {relative_path} does not exist!'
 
     print("Listing folders in: " + relative_path)
     return [f for f in os.listdir(absolute_path) if os.path.isdir(os.path.join(absolute_path, f))]
@@ -95,7 +95,7 @@ def execute_command_tool(command: str, relative_path: str = '.', accept_nonzero_
 
     if not os.path.exists(absolute_path):
         print(f"Directory {relative_path} does not exist!")
-        return 'Error: Directory {relative_path} does not exist!', 1
+        return f'Error: Directory {relative_path} does not exist!', 1
 
     try:
         result = subprocess.run(command, shell=True, cwd=absolute_path, capture_output=True, text=True)
@@ -107,7 +107,7 @@ def execute_command_tool(command: str, relative_path: str = '.', accept_nonzero_
         return 'Error: ' + str(e), 1
     
 def prompt_modify_file_tool(relative_path: str, new_content: str, oneline_modification_reason: str) -> str:
-    """Overwrite an existing file with the given new content. The file will be modified in place."""
+    """Overwrite an existing file with the given new content. The file will be modified in place. Use this tool as a last resort."""
 
     if '..' in relative_path:
         print("LLM tried to access parent directory! Returning empty string.")
@@ -162,12 +162,12 @@ class RunCommands(dspy.Signature):
 
 
 subprocess.run(['git', 'reset', '--hard'], cwd=repo_dir)
-subprocess.run(['git', 'clean', '-fdx'], cwd=repo_dir)
+subprocess.run(['git', 'clean', '-ffdx'], cwd=repo_dir)
 
 inf_module = DSPYInference(
-    pred_signature=RunCommands(),
+    pred_signature=RunCommands,
     tools=[list_files_tool, list_folders_tool, read_file_tool, execute_command_tool, prompt_modify_file_tool, final_check_before_completion],
-    max_iters=20,
+    max_iters=50,
 )
 
 result = asyncio.run(inf_module.run(
@@ -180,7 +180,10 @@ result = asyncio.run(inf_module.run(
         {', '.join(approved_commands)}
         You will not combine commands with && or ||.
         You will always try to use the non-interactive or json versions of the commands.
-        You are allowed to use the help parameter of the commands if you want to understand them better.
+        Sometimes repos fail to give instructions on how to set up dependencies. In this case you should figure out how to pull them from one of the supplied commands.
+        For example, if you find out that forge-std doesn't exist, you can pull it in via `forge install foundry-rs/forge-std`.
+        Please be mindful of required versions and stick to them. Modify `remappings.txt` only as a last resort.
+        You are allowed to use the help parameter of the commands if you get confused or are uncertain about their usage.
         When supplying any relative path to a tool you will never use `..`. This is forbidden and will cause the tool to fail.
         You are not allowed to move freely using `cd`.
         You can additionally modify any file in the project that you have already read.

@@ -1,8 +1,7 @@
 from dspy.utils.callback import BaseCallback
 from langfuse.decorators import langfuse_context
 from langfuse import Langfuse
-from litellm import completion_cost
-from langfuse.media import LangfuseMedia
+from litellm.cost_calculator import completion_cost
 from typing import Optional
 import dspy
 import contextvars
@@ -15,7 +14,7 @@ NOTE: We use contextvars to store the current state of the callback, so it is th
 
 # 1. Define a custom callback class that extends BaseCallback class
 class LangFuseDSPYCallback(BaseCallback):
-    def __init__(self, signature: dspy.Signature):
+    def __init__(self, signature: type[dspy.Signature]):
         super().__init__()
         # Use contextvars for per-call state
         self.current_system_prompt = contextvars.ContextVar("current_system_prompt")
@@ -38,6 +37,7 @@ class LangFuseDSPYCallback(BaseCallback):
 
     def on_module_start(self, call_id, *args, **kwargs):
         inputs = kwargs.get("inputs")
+        assert inputs is not None, "Inputs must be provided"
         extracted_args = inputs["kwargs"]
         input_field_values = {}
         for input_field_name in self.input_field_names:
@@ -74,6 +74,7 @@ class LangFuseDSPYCallback(BaseCallback):
         temperature = lm_dict.get("kwargs", {}).get("temperature")
         max_tokens = lm_dict.get("kwargs", {}).get("max_tokens")
         inputs = kwargs.get("inputs")
+        assert inputs is not None, "Inputs must be provided"
         messages = inputs.get("messages")
         assert messages[0].get("role") == "system"
         system_prompt = messages[0].get("content")
@@ -153,6 +154,7 @@ class LangFuseDSPYCallback(BaseCallback):
         ):
             try:
                 if hasattr(outputs, "usage"):
+                    assert outputs.usage is not None, "Usage must be provided"
                     prompt_tokens = outputs.usage.prompt_tokens
                     completion_tokens = outputs.usage.completion_tokens
                     total_tokens = outputs.usage.total_tokens

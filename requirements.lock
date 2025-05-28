@@ -80,6 +80,8 @@ google-auth==2.40.1
     # via google-genai
 google-genai==1.15.0
     # via python-template
+greenlet==3.2.2
+    # via sqlalchemy
 h11==0.16.0
     # via httpcore
 httpcore==1.0.9

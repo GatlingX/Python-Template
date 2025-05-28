@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Awaitable, Any
 import dspy
 from global_config import global_config
 
@@ -10,19 +10,20 @@ from tenacity import (
     retry_if_exception_type,
 )
 from utils.llm.dspy_langfuse import LangFuseDSPYCallback
-from litellm import ServiceUnavailableError
+from litellm.exceptions import ServiceUnavailableError
 from langfuse.decorators import observe
 
 
 class DSPYInference:
     def __init__(
         self,
-        pred_signature: dspy.Signature,
+        pred_signature: type[dspy.Signature],
         tools: list[Callable] = [],
         observe: bool = True,
         model_name: str = global_config.default_llm.default_model,
         temperature: float = global_config.default_llm.default_temperature,
         max_tokens: int = global_config.default_llm.default_max_tokens,
+        max_iters: int = 5,
     ):
         api_key = global_config.llm_api_key(model_name)
         self.lm = dspy.LM(
@@ -44,10 +45,11 @@ class DSPYInference:
             self.inference_module = dspy.ReAct(
                 pred_signature,
                 tools=tools,  # Uses tools as passed, no longer appends read_memory
+                max_iters=max_iters,
             )
         else:
             self.inference_module = dspy.Predict(pred_signature)
-        self.inference_module_async = dspy.asyncify(self.inference_module)
+        self.inference_module_async: Callable[..., Awaitable[Any]] = dspy.asyncify(self.inference_module)
 
     @observe()
     @retry(

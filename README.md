@@ -52,11 +52,16 @@
   ```
   curl -sSf https://rye.astral.sh/get | bash
   ```
+- [prek](https://github.com/j178/prek)
+  ```
+  curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.3.3/prek-installer.sh | sh
+  ```
 
 ## Quick Start
 
 - `make all` - runs `main.py`
 - `make fmt` - runs `black` linter, an opinionated linter
+- `make lint` - runs `prek` hooks (linting, formatting, checks)
 - `make banner` - create a new banner that makes the README nice 😊
 - `make test` - runs all tests defined by `TEST_TARGETS = tests/folder1 tests/folder2`
 
@@ -83,6 +88,7 @@
 This software uses the following tools:
 - [Cursor: The AI Code Editor](cursor.com)
 - [Rye: a Hassle-Free Python Experience](https://rye.astral.sh/)
+- [prek: Better pre-commit, re-engineered in Rust](https://github.com/j178/prek)
 - [DSPY: Pytorch for LLM Inference](https://dspy.ai/)
 - [LangFuse: LLM Observability Tool](https://langfuse.com/)
 

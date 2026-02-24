@@ -1,4 +1,4 @@
-name: Lint
+name: Prek Checks
 
 on:
   pull_request:
@@ -10,9 +10,11 @@ on:
       - '.github/workflows/**'
 
 jobs:
-  lint:
+  prek:
     if: github.event_name == 'pull_request' || github.event.pull_request == null
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: psf/black@stable
+        with:
+          submodules: 'recursive'
+      - uses: j178/prek-action@v1

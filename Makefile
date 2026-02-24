@@ -42,13 +42,23 @@ check_jq:
 		jq --version; \
 	fi
 
+check_prek:
+	@echo "$(YELLOW)🔍Checking prek version...$(RESET)"
+	@if ! command -v prek > /dev/null 2>&1; then \
+		echo "$(RED)prek is not installed. Please install prek before proceeding.$(RESET)"; \
+		echo "$(RED)curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.3.3/prek-installer.sh | sh$(RESET)"; \
+		exit 1; \
+	else \
+		prek --version; \
+	fi
+
 ########################################################
 # Setup githooks for linting
 ########################################################
-setup_githooks:
-	@echo "$(YELLOW)🔨Setting up githooks on post-commit...$(RESET)"
-	chmod +x .githooks/post-commit
-	git config core.hooksPath .githooks
+install_hooks: check_prek
+	@echo "$(YELLOW)🔨Installing pre-commit hooks with prek...$(RESET)"
+	@git config --unset core.hooksPath || true
+	@prek install
 
 
 ########################################################
@@ -75,7 +85,7 @@ view_python_venv_size_by_libraries:
 # Run Main Application
 ########################################################
 
-all: update_python_dep setup_githooks
+all: update_python_dep install_hooks
 	@echo "$(GREEN)🏁Running main application...$(RESET)"
 	@$(PYTHON) main.py
 	@echo "$(GREEN)✅ Main application run completed.$(RESET)"
@@ -101,6 +111,11 @@ test: check_rye
 # Linter will ignore these directories
 IGNORE_LINT_DIRS = .venv|venv
 LINE_LENGTH = 88
+
+lint: check_prek
+	@echo "$(YELLOW)🔍Running pre-commit hooks...$(RESET)"
+	@prek run --all-files
+	@echo "$(GREEN)✅Pre-commit hooks passed.$(RESET)"
 
 fmt: check_rye check_jq
 	@echo "$(YELLOW)✨Formatting project with Black...$(RESET)"
